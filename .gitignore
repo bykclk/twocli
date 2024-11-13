@@ -1,0 +1,48 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Output of Go build process
+*.out
+*.o
+
+# Dependency directories
+vendor/
+
+# Go workspace and build directories
+/bin/
+/pkg/
+/src/
+
+# macOS specific files
+.DS_Store
+
+# Visual Studio Code workspace files
+.vscode/
+
+# GoLand IDE files
+.idea/
+
+# Environment variable files
+.env
+
+# Log files
+*.log
+
+# Accounts database or temporary data
+data/accounts.db
+test_accounts.db
+*.db
+
+# Test coverage files
+coverage.out
+coverage/
+*.coverprofile
+
+# Binary archives and compressed files
+*.gz
+*.tar
+*.zip
+*.tar.gz
