@@ -26,7 +26,11 @@
 
 - **Add Accounts**: Securely store multiple 2FA accounts with names and secrets.
 - **List Accounts**: View all saved account names.
-- **Generate TOTP Codes**: Generate TOTP codes for your accounts.
+- **Generate TOTP Codes**: Generate TOTP codes for your accounts with:
+  - Real-time countdown timer
+  - Color-coded progress bar
+  - Automatic code refresh
+  - Visual remaining time indicator
 - **Update Accounts**: Update the secret key of an existing account.
 - **Delete Accounts**: Remove accounts you no longer need.
 - **Secure Encryption**: All secrets are encrypted using AES-256-GCM with a master password.
@@ -134,18 +138,32 @@ Generate a TOTP code for a specified account.
 **Syntax:**
 
 ```bash
-./twocli code -name ACCOUNT_NAME
+./twocli code -name ACCOUNT_NAME [-auto]
 ```
 
 **Options:**
 
 - `-name` - The name of the account
+- `-auto` - Automatically generate new codes when the current one expires
 
 **Example:**
 
 ```bash
+# Generate a single code
 ./twocli code -name GitHub
+
+# Generate codes automatically
+./twocli code -name GitHub -auto
 ```
+
+**Features:**
+- Color-coded progress bar that changes based on remaining time:
+  - Green: > 15 seconds
+  - Yellow: 6-15 seconds
+  - Red: ≤ 5 seconds
+- Visual countdown timer
+- Automatic code refresh (with -auto flag)
+- Clean and modern UI
 
 ---
 

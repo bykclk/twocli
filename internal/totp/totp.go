@@ -17,50 +17,62 @@ var timeNow = time.Now
 func ValidateSecret(secret string) error {
 	// Remove any whitespace and convert to uppercase
 	secret = strings.ToUpper(strings.ReplaceAll(secret, " ", ""))
-	if _, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret); err != nil {
-		return err
+
+	// Check for empty secret
+	if secret == "" {
+		return errors.New("secret cannot be empty")
 	}
+
+	// Try to decode the secret
+	if _, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(secret); err != nil {
+		return fmt.Errorf("invalid base32 encoding: %v", err)
+	}
+
 	return nil
 }
 
-// GenerateCode generates a TOTP code based on the provided secret key.
-// The secret should be a base32 encoded string.
-func GenerateCode(secret string) (uint32, error) {
+// TOTPInfo contains the generated code and its validity information
+type TOTPInfo struct {
+	Code             uint32
+	RemainingSeconds int64
+}
+
+// GenerateCode generates a TOTP code and returns it along with remaining validity time
+func GenerateCode(secret string) (TOTPInfo, error) {
+	// Validate secret first
 	if err := ValidateSecret(secret); err != nil {
-		return 0, fmt.Errorf("invalid secret key: %v", err)
+		return TOTPInfo{}, fmt.Errorf("invalid secret key: %v", err)
 	}
 
 	// Decode the base32 encoded secret key
 	key, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(secret))
 	if err != nil {
-		return 0, errors.New("failed to decode secret key")
+		return TOTPInfo{}, fmt.Errorf("failed to decode secret key: %v", err)
 	}
 
-	// Calculate the time step (number of 30-second intervals since Unix epoch)
+	// Calculate the time step and remaining seconds
 	epochSeconds := timeNow().Unix()
 	timeStep := uint64(epochSeconds / 30)
+	remainingSeconds := 30 - (epochSeconds % 30)
 
-	// Convert time step to byte array (big-endian)
-	var timeBytes [8]byte
-	binary.BigEndian.PutUint64(timeBytes[:], timeStep)
+	// Convert time step to byte array
+	msg := make([]byte, 8)
+	binary.BigEndian.PutUint64(msg, timeStep)
 
-	// Compute HMAC-SHA1 hash
-	hash := hmac.New(sha1.New, key)
-	hash.Write(timeBytes[:])
-	hmacHash := hash.Sum(nil)
+	// Calculate HMAC-SHA1
+	h := hmac.New(sha1.New, key)
+	h.Write(msg)
+	hash := h.Sum(nil)
 
-	// Perform dynamic truncation to extract a 4-byte string
-	offset := hmacHash[len(hmacHash)-1] & 0x0F
-	if offset+4 > byte(len(hmacHash)) {
-		return 0, errors.New("invalid HMAC hash length")
-	}
-	truncatedHash := hmacHash[offset : offset+4]
+	// Get offset
+	offset := hash[len(hash)-1] & 0xf
 
-	// Convert truncated hash to uint32
-	code := binary.BigEndian.Uint32(truncatedHash) & 0x7FFFFFFF
+	// Generate 4-byte code
+	binary := binary.BigEndian.Uint32(hash[offset:]) & 0x7fffffff
+	code := binary % 1000000
 
-	// Modulo operation to get the final TOTP code (6 digits)
-	otp := code % 1000000
-
-	return otp, nil
+	return TOTPInfo{
+		Code:             code,
+		RemainingSeconds: remainingSeconds,
+	}, nil
 }
